@@ -21,7 +21,9 @@
 go.work
 
 go-http-server
-bin/webapp-api
+cmd/bin/webapp-api
 .env
+
+bin
 
 .pnpm-debug.log

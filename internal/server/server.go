@@ -4,31 +4,60 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/joho/godotenv"
 )
 
-type server struct {
-	router *chi.Mux
+type Server struct {
+	host    string
+	port    int
+	timeout time.Duration
+	router  *chi.Mux
 }
 
-func RunServer() {
-	godotenv.Load()
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("Port not initialized")
+func New(options ...func(*Server)) *Server {
+	s := &Server{host: "localhost", port: 8080, timeout: 30 * time.Second, router: chi.NewRouter()}
+	for _, opt := range options {
+		opt(s)
 	}
-	r := chi.NewRouter()
-	s := server{router: r}
+	return s
+}
+func WithHost(host string) func(*Server) {
+	return func(s *Server) {
+		s.host = host
+	}
+}
+
+func WithPort(port int) func(*Server) {
+	return func(s *Server) {
+		s.port = port
+	}
+}
+
+func WithTimeout(timeout time.Duration) func(*Server) {
+	return func(s *Server) {
+		s.timeout = timeout
+	}
+}
+
+func (s *Server) GetRouter() *chi.Mux {
+	return s.router
+}
+
+func (s *Server) Start() {
+
+	fmt.Println("Starting server...")
 
 	s.router.Use(middleware.RequestID)
 	s.router.Use(middleware.RealIP)
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
+	s.router.Use(middleware.URLFormat)
+	s.router.Use(middleware.Timeout(s.timeout))
 
 	s.router.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
@@ -41,12 +70,8 @@ func RunServer() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	s.router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
-	})
-
 	s.router.Get("/json", func(w http.ResponseWriter, r *http.Request) {
-		respondWithJson(w, 200, struct {
+		s.respondWithJson(w, 200, struct {
 			Success bool `json:"success"`
 		}{true})
 	})
@@ -55,10 +80,11 @@ func RunServer() {
 		w.Write([]byte("pong"))
 	})
 
-	s.router.Mount("/users", UserRouter())
+	fmt.Printf("Server running on port: %v \n", s.port)
 
-	fmt.Printf("Server running on port: %s \n", port)
+	err := http.ListenAndServe(":"+strconv.Itoa(s.port), s.router)
 
-	p := ":" + port
-	http.ListenAndServe(p, r)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
