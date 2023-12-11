@@ -2,9 +2,7 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,43 +10,43 @@ import (
 	"github.com/go-chi/cors"
 )
 
-type Server struct {
+type BaseServer struct {
 	host    string
 	port    int
 	timeout time.Duration
 	router  *chi.Mux
 }
 
-func New(options ...func(*Server)) *Server {
-	s := &Server{host: "localhost", port: 8080, timeout: 30 * time.Second, router: chi.NewRouter()}
+func New(options ...func(*BaseServer)) *BaseServer {
+	s := &BaseServer{host: "localhost", port: 8080, timeout: 30 * time.Second, router: chi.NewRouter()}
 	for _, opt := range options {
 		opt(s)
 	}
 	return s
 }
-func WithHost(host string) func(*Server) {
-	return func(s *Server) {
+func WithHost(host string) func(*BaseServer) {
+	return func(s *BaseServer) {
 		s.host = host
 	}
 }
 
-func WithPort(port int) func(*Server) {
-	return func(s *Server) {
+func WithPort(port int) func(*BaseServer) {
+	return func(s *BaseServer) {
 		s.port = port
 	}
 }
 
-func WithTimeout(timeout time.Duration) func(*Server) {
-	return func(s *Server) {
+func WithTimeout(timeout time.Duration) func(*BaseServer) {
+	return func(s *BaseServer) {
 		s.timeout = timeout
 	}
 }
 
-func (s *Server) GetRouter() *chi.Mux {
+func (s *BaseServer) GetRouter() *chi.Mux {
 	return s.router
 }
 
-func (s *Server) Start() {
+func (s *BaseServer) GetServer() *chi.Mux {
 
 	fmt.Println("Starting server...")
 
@@ -70,21 +68,12 @@ func (s *Server) Start() {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	s.router.Get("/json", func(w http.ResponseWriter, r *http.Request) {
-		s.respondWithJson(w, 200, struct {
-			Success bool `json:"success"`
-		}{true})
-	})
-
 	s.router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("pong"))
 	})
 
 	fmt.Printf("Server running on port: %v \n", s.port)
 
-	err := http.ListenAndServe(":"+strconv.Itoa(s.port), s.router)
+	return s.router
 
-	if err != nil {
-		log.Fatal(err)
-	}
 }

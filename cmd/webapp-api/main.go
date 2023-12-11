@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -36,12 +36,15 @@ func main() {
 		server.WithTimeout(time.Minute),
 	)
 
-	// fmt.Println(svr)
-	svr.Start()
-	r := svr.GetRouter()
+	r := svr.GetServer()
 
 	r.Route("/users", func(r chi.Router) {
-		fmt.Print("hit")
 		r.Get("/", c.GetUsers)
 	})
+
+	err = http.ListenAndServe(":"+strconv.Itoa(port), r)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }

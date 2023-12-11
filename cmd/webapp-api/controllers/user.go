@@ -1,11 +1,14 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
+
+	s "github.com/brianqian/go-http-server/cmd/webapp-api/services"
 )
 
+var userService = s.UserService{}
+
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("working")
-	w.Write([]byte("User"))
+	user := userService.FindUserById(r.Context(), "fake_id")
+	RespondWithJson(w, 200, user)
 }
