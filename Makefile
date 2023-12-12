@@ -1,9 +1,9 @@
 all: build dev
 
 build:
-	@go build -o ./bin ./cmd/webapp-api
+	@go build -o ./bin/api ./cmd/main.go
 
 dev:
-	@./bin/webapp-api
+	@./bin/api
 
 .PHONY = all build dev
