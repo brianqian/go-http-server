@@ -9,10 +9,12 @@ import (
 )
 
 func (s *Server) RegisterRoutes() {
-	registerUserRoutes(s.router)
+	s.router.Route("/api", func(r chi.Router) {
+		registerUserRoutes(r)
+	})
 }
 
-func registerUserRoutes(r *chi.Mux) {
+func registerUserRoutes(r chi.Router) {
 	r.Route("/users", func(r chi.Router) {
 		r.Use(userCtx)
 		r.Get("/", GetUsers)
@@ -21,8 +23,7 @@ func registerUserRoutes(r *chi.Mux) {
 
 func userCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc((func(w http.ResponseWriter, r *http.Request) {
-		userID := "THIS IS A TEST"
-		// userID := chi.URLParam(r, "userId")
+		userID := chi.URLParam(r, "userId")
 		ctx := context.WithValue(r.Context(), types.UserIdKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))

@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,25 +14,23 @@ import (
 )
 
 var (
-	defaultPort   = 8080
-	defaultDomain = "localhost"
+	port   = 8080
+	domain = "localhost"
 )
 
-func (s *Server) InitServer() {
+func InitServer() *Server {
 	godotenv.Load()
-	port, err := strconv.Atoi(os.Getenv("PORT"))
-	if err != nil {
-		log.Fatal("Error converting port", err)
+	if os.Getenv("PORT") != "" {
+		port, _ = strconv.Atoi(os.Getenv("PORT"))
 	}
-	if port == 0 {
-		port = defaultPort
-	}
-	domain := os.Getenv("DOMAIN")
-	if domain == "" {
-		domain = defaultDomain
+
+	if os.Getenv("DOMAIN") != "" {
+		domain = os.Getenv("DOMAIN")
 	}
 
 	addr := fmt.Sprintf("%s:%d", domain, port)
+
+	s := &Server{}
 	s.router = chi.NewRouter()
 
 	s.router.Use(middleware.RequestID)
@@ -59,4 +56,6 @@ func (s *Server) InitServer() {
 		w.Write([]byte("hi"))
 	})
 	s.server = &http.Server{Addr: addr, Handler: s.router}
+
+	return s
 }

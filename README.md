@@ -22,7 +22,7 @@ Using this project to learn Golang. Until now I have only really known Javascrip
 ## Context
 
 - Context is useful as a per-request place to store information
-- Context needs to be keyed by a specific type
+- Context needs to be keyed by a unique type
 
 ## Packages
 

@@ -21,7 +21,7 @@ type DbConfig struct {
 	MaxConnections string
 }
 
-func InitDb(config DbConfig) *pgxpool.Pool {
+func New(config DbConfig) *pgxpool.Pool {
 	dsn := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s pool_min_conns=%s pool_max_conns=%s",
 		username, password, host, port, database_name, config.MinConnections, config.MaxConnections)
 	dbPool, err := pgxpool.New(context.Background(), dsn)

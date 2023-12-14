@@ -18,9 +18,8 @@ type Server struct {
 
 func Main() {
 
-	s := &Server{}
-	s.InitServer()
-	s.db = db.InitDb(db.DbConfig{MinConnections: "1", MaxConnections: "4"})
+	s := InitServer()
+	s.db = db.New(db.DbConfig{MinConnections: "1", MaxConnections: "4"})
 	s.RegisterRoutes()
 
 	fmt.Printf("Server running on %s \n", s.server.Addr)

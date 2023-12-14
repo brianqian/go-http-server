@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"base/types"
+	"base/pkg/chess_client"
 	"context"
-	"fmt"
 )
 
 type UserService struct{}
@@ -14,9 +13,8 @@ type User struct {
 
 func (u UserService) FindUserById(ctx context.Context, id string) User {
 
-	last2 := ctx.Value(types.UserIdKey)
+	chess_client.BuildChessClient()
 
-	fmt.Println("VAL", last2)
 	return User{
 		Id: id,
 	}
