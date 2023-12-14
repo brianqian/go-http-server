@@ -1,7 +1,7 @@
-package chess_client
+package chess
 
 import (
-	"base/pkg/http_client"
+	"base/internal/http_client"
 	"base/types"
 	"encoding/json"
 	"fmt"

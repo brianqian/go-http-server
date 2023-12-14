@@ -1,7 +1,6 @@
-package handlers
+package services
 
 import (
-	"base/pkg/chess_client"
 	"context"
 )
 
@@ -12,8 +11,6 @@ type User struct {
 }
 
 func (u UserService) FindUserById(ctx context.Context, id string) User {
-
-	chess_client.BuildChessClient()
 
 	return User{
 		Id: id,

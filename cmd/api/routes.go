@@ -11,6 +11,7 @@ import (
 func (s *Server) RegisterRoutes() {
 	s.router.Route("/api", func(r chi.Router) {
 		registerUserRoutes(r)
+		registerChessRoutes(r)
 	})
 }
 
@@ -18,6 +19,11 @@ func registerUserRoutes(r chi.Router) {
 	r.Route("/users", func(r chi.Router) {
 		r.Use(userCtx)
 		r.Get("/", GetUsers)
+	})
+}
+func registerChessRoutes(r chi.Router) {
+	r.Route("/chess", func(r chi.Router) {
+		r.Get("/", GetChessProfile)
 	})
 }
 

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"base/db"
+	"base/internal/db"
 	"fmt"
 	"log"
 	"net/http"
