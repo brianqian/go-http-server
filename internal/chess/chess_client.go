@@ -5,7 +5,7 @@ import (
 	"base/types"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 )
 
 type ChessClient struct {
@@ -26,11 +26,11 @@ func BuildChessClient() *ChessClient {
 
 func (cc *ChessClient) GetProfileByUsername(username string) *types.ChessComProfile {
 	resp, _ := cc.client.Get(fmt.Sprintf("https://api.chess.com/pub/player/%s", username))
-	profile := &types.ChessComProfile{}
+	var profile = &types.ChessComProfile{}
 	err := json.Unmarshal(resp, profile)
 
 	if err != nil {
-		log.Fatal("")
+		slog.Warn("Error unmarshaling profile")
 	}
 
 	cc.profile = profile

@@ -17,7 +17,6 @@ type Server struct {
 }
 
 func Main() {
-
 	s := InitServer()
 	s.db = db.New(db.DbConfig{MinConnections: "1", MaxConnections: "4"})
 	s.RegisterRoutes()

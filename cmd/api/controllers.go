@@ -14,7 +14,8 @@ var (
 )
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	user := userService.FindUserById(r.Context(), "fake_id")
+	userId := chi.URLParam(r, "userId")
+	user := userService.FindUserById(r.Context(), userId)
 	serialize.Json(w, 200, user)
 }
 
