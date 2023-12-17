@@ -15,4 +15,7 @@ else
 	@echo "Creating migration with name 'temp_name'..."
 endif
 
+migrate:
+	@TERN_CONFIG="./data/migrations/tern.dev.conf" TERN_MIGRATIONS="./data/migrations" tern migrate
+ 
 .PHONY = all build dev migration

@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16.1
+    container_name: go-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123
+      - POSTGRES_DB=development
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data/pgdata
+
+volumes:
+  pgdata:

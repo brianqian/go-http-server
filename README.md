@@ -4,13 +4,18 @@ Using this project to learn Golang. Until now I have only really known Javascrip
 
 - Fast and lightweight
 - Strongly typed
-- Concurrency
+- Concurrency / Parallelism
 - Compiles into a binary
 - Pointers
 
-# Choices
+# Goals
 
-## Chi Router vs http
+1. Create a web server that can authorize a user
+2. Enable file upload of pgns that can use the Lichess API to do basic analysis
+3. Create a basic frontend to list/sort users games
+4. Allow automatic pgn retrieval from chess.com
+5. Create a standalone client that can run deeper analysis locally (maybe a separate project)
+6. As a separate project, dockerize and run as a GRPC microservice
 
 # Learning notes
 
@@ -27,6 +32,7 @@ Using this project to learn Golang. Until now I have only really known Javascrip
 ## Packages
 
 `go get github.com/...` seems to be the standard to fetch external packages, need to run `go mod vendor` afterwards
+`go install ...` the new version? `https://go.dev/doc/go-get-install-deprecation`
 
 ## Docs/Notes
 
