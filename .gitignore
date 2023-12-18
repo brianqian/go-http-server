@@ -25,5 +25,6 @@ cmd/bin/webapp-api
 .env
 
 bin
+tmp
 
 .pnpm-debug.log

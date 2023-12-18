@@ -7,18 +7,17 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
 	server *http.Server
 	router *chi.Mux
-	db     *pgxpool.Pool
+	db     *db.Database
 }
 
-func Main() {
+func Main(db *db.Database) {
 	s := InitServer()
-	s.db = db.New(db.DbConfig{MinConnections: "1", MaxConnections: "4"})
+	s.db = db
 	s.RegisterRoutes()
 
 	fmt.Printf("Server running on %s \n", s.server.Addr)

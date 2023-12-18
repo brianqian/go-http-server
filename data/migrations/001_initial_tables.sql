@@ -44,7 +44,7 @@ CREATE TABLE fen_positions(
 
 CREATE TABLE fen_pv(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  fen varchar NOT NULL UNIQUE,
+  fen varchar NOT NULL,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   line varchar NOT NULL,
