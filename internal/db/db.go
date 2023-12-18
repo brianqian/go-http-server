@@ -5,29 +5,40 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/samber/lo"
 )
 
 type DbConfig struct {
 	MinConnections,
-	MaxConnections,
-	Username,
-	Password,
-	Host,
-	Port,
-	Database_name string
+	MaxConnections string
 }
 
 type Database struct {
 	conn *pgxpool.Pool
 }
 
-func New(config DbConfig) *Database {
+type DbHelper[T any] interface {
+	FindById(id string) (T, error)
+	DeleteById(id string) (bool, error)
+	UpdateById(id string)
+	Insert(entity T) (int, error)
+	InsertMany(entity []T) (int, error)
+}
 
+func New(config DbConfig) *Database {
+	var (
+		Username      = os.Getenv("DB_USERNAME")
+		Password      = os.Getenv("DB_PASSWORD")
+		Host          = os.Getenv("DB_HOST")
+		Port          = os.Getenv("DB_PORT")
+		Database_name = os.Getenv("DB_NAME")
+	)
 	dsn := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s pool_min_conns=%s pool_max_conns=%s",
-		config.Username, config.Password, config.Host, config.Port, config.Database_name, config.MinConnections, config.MaxConnections)
+		Username, Password, Host, Port, Database_name, config.MinConnections, config.MaxConnections)
 
 	dbPool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -42,25 +53,19 @@ func New(config DbConfig) *Database {
 
 func (db *Database) Close() {
 	db.conn.Close()
+
 }
 
-func (db *Database) BatchRequests(ctx context.Context, query string, args []pgx.NamedArgs) {
+func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.NamedArgs) {
 	batch := &pgx.Batch{}
-	for range args {
-		batch.Queue(query, args)
+	for _, arg := range args {
+		batch.Queue(query, arg)
 	}
-	tx, err := db.conn.Begin(ctx)
-	if err != nil {
-		// fmt.Errorf("Error retrieving transaction: %w\n", err)
-		// slog.Error("Error inserting eval")
-		fmt.Println("Error retriving transaction", err)
-	}
-	defer tx.Rollback(ctx)
-	results := tx.SendBatch(ctx, batch)
 
+	results := db.conn.SendBatch(ctx, batch)
+	defer results.Close()
 	for range args {
 		_, err := results.Exec()
-
 		if err != nil {
 			// fmt.Errorf("Error inserting eval: %w", err)
 			// slog.Error("Error inserting eval")
@@ -68,5 +73,17 @@ func (db *Database) BatchRequests(ctx context.Context, query string, args []pgx.
 			log.Fatal("Error inserting eval", err)
 		}
 	}
+}
 
+// Can adjust later but for now, we'll default to 500 items per query and 10 queries per batch
+func (db *Database) insertMany(ctx context.Context, target string, values []string, errorOnConflict bool) {
+
+	chunked := lo.Chunk(values, 500)
+
+	query := strings.Builder{}
+	query.WriteString("INSERT INTO")
+	query.WriteString(target)
+	query.WriteString("VALUES (")
+	// s.
+	// query := fmt.Sprintf("INSERT INTO %s VALUES ")
 }

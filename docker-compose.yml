@@ -3,6 +3,7 @@ services:
     image: postgres:16.1
     container_name: go-db
     restart: always
+    shm_size: 1024MB
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123
@@ -12,6 +13,8 @@ services:
       - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data/pgdata
+    command: >
+      -c work_mem=128MB
 
 volumes:
   pgdata:

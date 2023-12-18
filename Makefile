@@ -17,5 +17,8 @@ endif
 
 migrate:
 	@TERN_CONFIG="./data/migrations/tern.dev.conf" TERN_MIGRATIONS="./data/migrations" tern migrate
- 
+
+seed:build
+	@./bin/api seed
+
 .PHONY = all build dev migration

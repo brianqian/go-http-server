@@ -22,7 +22,10 @@ Using this project to learn Golang. Until now I have only really known Javascrip
 ## Syntax
 
 - Capital Functions are exported
-- For a struct to be serialized into json its fields need to labeled `json:field_name` and Marshaled
+- For fields to be accessible in structs they also need to be capitalized
+- Lowercase functions can still be used by files in the same package
+- For a struct to be serialized into json its fields need to tagged `json:field_name` and Marshaled
+- The `db:"field"` tag is used to reference table names
 
 ## Context
 
