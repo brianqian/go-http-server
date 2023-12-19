@@ -79,11 +79,27 @@ func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.
 func (db *Database) insertMany(ctx context.Context, target string, values []string, errorOnConflict bool) {
 
 	chunked := lo.Chunk(values, 500)
-
 	query := strings.Builder{}
-	query.WriteString("INSERT INTO")
+
+	query.WriteString("INSERT INTO ")
 	query.WriteString(target)
-	query.WriteString("VALUES (")
+	query.WriteString(" VALUES ")
+	for idx, chunk := range chunked {
+		query.WriteRune('(')
+		query.WriteString(strings.Join(chunk, ", "))
+		if idx == len(chunked)-1 {
+			query.WriteString(")")
+		} else {
+			query.WriteString("), ")
+		}
+	}
+
+	// query.
+	if !errorOnConflict {
+		query.WriteString(" ON CONFLICT DO NOTHING")
+	}
+	query.WriteRune(';')
+
 	// s.
 	// query := fmt.Sprintf("INSERT INTO %s VALUES ")
 }
