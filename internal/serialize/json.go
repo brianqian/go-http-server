@@ -3,6 +3,7 @@ package serialize
 import (
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -15,5 +16,8 @@ func Json(w http.ResponseWriter, code int, payload interface{}) {
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		slog.Error("Error writing")
+	}
 }

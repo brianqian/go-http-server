@@ -10,7 +10,6 @@ import (
 type HttpClient struct{}
 
 func BuildHttpClient() *HttpClient {
-
 	return &HttpClient{}
 }
 
@@ -32,16 +31,16 @@ func (client *HttpClient) Delete(url string, body interface{}) (bool, error) {
 }
 
 func makeRequest(method string, url string, body interface{}) ([]byte, error) {
-	var buff bytes.Buffer
+	var buf bytes.Buffer
 	client := &http.Client{}
 
 	if body != nil {
-		err := json.NewEncoder(&buff).Encode(body)
+		err := json.NewEncoder(&buf).Encode(body)
 		if err != nil {
 			return nil, nil
 		}
 	}
-	req, err := http.NewRequest(method, url, &buff)
+	req, err := http.NewRequest(method, url, &buf)
 	if err != nil {
 		return nil, nil
 	}

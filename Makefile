@@ -8,17 +8,20 @@ dev:
 
 migration:
 ifdef name
-	@TERN_CONFIG="./data/migrations/tern.dev.conf" TERN_MIGRATIONS="./data/migrations" tern new $(name)
+	@TERN_CONFIG="./data/migrations/tern.conf" TERN_MIGRATIONS="./data/migrations" tern new $(name)
 	@echo "Creating migration with name $(name)..."
 else
-	@TERN_CONFIG="./data/migrations/tern.dev.conf" TERN_MIGRATIONS="./data/migrations" tern new temp_name
+	@TERN_CONFIG="./data/migrations/tern.conf" TERN_MIGRATIONS="./data/migrations" tern new temp_name
 	@echo "Creating migration with name 'temp_name'..."
 endif
 
 migrate:
-	@TERN_CONFIG="./data/migrations/tern.dev.conf" TERN_MIGRATIONS="./data/migrations" tern migrate
+	@TERN_CONFIG="./data/migrations/tern.conf" TERN_MIGRATIONS="./data/migrations" tern migrate
 
 seed:build
 	@./bin/api seed
+
+lint:
+	@golangci-lint run
 
 .PHONY = all build dev migration

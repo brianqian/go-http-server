@@ -1,10 +1,24 @@
 package types
 
-import "github.com/jackc/pgx/v5/pgtype"
-
+type RawChessComProfile struct {
+	Avatar     string `json:"avatar"`
+	PlayerId   int    `json:"player_id"`
+	Id         string `json:"id"`
+	Url        string `json:"url"`
+	Name       string `json:"name"`
+	Username   string `json:"username"`
+	Followers  int    `json:"followers"`
+	Country    string `json:"country"`
+	LastOnline int    `json:"last_online"`
+	Joined     int    `json:"joined"`
+	Status     string `json:"status"`
+	IsStreamer bool   `json:"is_streamer"`
+	Verified   bool   `json:"verified"`
+	League     string `json:"league"`
+}
 type ChessComProfile struct {
 	Avatar      string `json:"avatar"`
-	Player_id   int    `json:"playerId"`
+	PlayerId    int    `json:"playerId"`
 	Id          string `json:"id"`
 	Url         string `json:"url"`
 	Name        string `json:"name"`
@@ -14,7 +28,7 @@ type ChessComProfile struct {
 	Last_online int    `json:"lastOnline"`
 	Joined      int    `json:"joined"`
 	Status      string `json:"status"`
-	Is_streamer bool   `json:"isStreamer"`
+	IsStreamer  bool   `json:"isStreamer"`
 	Verified    bool   `json:"verified"`
 	League      string `json:"league"`
 }
@@ -22,6 +36,7 @@ type ChessComProfile struct {
 type PrincipleVariation struct {
 	Eval int    `json:"cp"`
 	Line string `json:"line"`
+	Mate int    `json:"mate"`
 }
 
 type ImportedFenParent struct {
@@ -33,15 +48,4 @@ type ImportedEvaulation struct {
 	Pvs    []PrincipleVariation `json:"pvs"`
 	Knodes int                  `json:"knodes"`
 	Depth  int                  `json:"depth"`
-}
-
-type Db_EvalLine struct {
-	Id        pgtype.UUID        `json:"id" db:"id"`
-	Fen       string             `json:"fen" db:"fen"`
-	CreatedAt pgtype.Timestamptz `json:"createdAt" db:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updatedAt" db:"updated_at"`
-	Line      string             `json:"line" db:"line"`
-	Eval      int                `json:"eval" db:"eval"`
-	Knodes    int                `json:"knodes" db:"knodes"`
-	Depth     int                `json:"depth" db:"depth"`
 }

@@ -4,6 +4,7 @@ import (
 	s "base/cmd/api"
 	data "base/data/seeds"
 	"base/internal/db"
+	"fmt"
 	"log"
 	"os"
 
@@ -17,12 +18,16 @@ func main() {
 
 	var dbInstance *db.Database
 
+	if len(os.Args) == 1 {
+		fmt.Println("Starting server...")
+		dbInstance = db.New(db.DbConfig{MinConnections: "3", MaxConnections: "4"})
+		s.Main(dbInstance)
+	}
+
 	switch args := os.Args[1]; args {
 	case "seed":
 		dbInstance = db.New(db.DbConfig{MinConnections: "3", MaxConnections: "8"})
 		data.SeedImportedFens(dbInstance)
 	default:
-		dbInstance = db.New(db.DbConfig{MinConnections: "3", MaxConnections: "4"})
-		s.Main(dbInstance)
 	}
 }

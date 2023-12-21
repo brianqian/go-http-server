@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/joho/godotenv"
 )
 
 var (
@@ -19,7 +18,7 @@ var (
 )
 
 func InitServer() *Server {
-	godotenv.Load()
+
 	if os.Getenv("PORT") != "" {
 		port, _ = strconv.Atoi(os.Getenv("PORT"))
 	}

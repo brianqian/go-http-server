@@ -67,8 +67,6 @@ func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.
 	for range args {
 		_, err := results.Exec()
 		if err != nil {
-			// fmt.Errorf("Error inserting eval: %w", err)
-			// slog.Error("Error inserting eval")
 			fmt.Println("Error inserting eval", err)
 			log.Fatal("Error inserting eval", err)
 		}
@@ -76,30 +74,49 @@ func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.
 }
 
 // Can adjust later but for now, we'll default to 500 items per query and 10 queries per batch
-func (db *Database) insertMany(ctx context.Context, target string, values []string, errorOnConflict bool) {
+// As values this takes a slice of strings
+func (db *Database) insertMany(ctx context.Context, target string, values [][]string, errorOnConflict bool) {
 
-	chunked := lo.Chunk(values, 500)
-	query := strings.Builder{}
+	var errors []error
+	var batch = &pgx.Batch{}
+	var query = &strings.Builder{}
 
-	query.WriteString("INSERT INTO ")
-	query.WriteString(target)
-	query.WriteString(" VALUES ")
-	for idx, chunk := range chunked {
-		query.WriteRune('(')
-		query.WriteString(strings.Join(chunk, ", "))
-		if idx == len(chunked)-1 {
-			query.WriteString(")")
-		} else {
-			query.WriteString("), ")
+	// Batch loop
+	for queryCount, item := range values {
+		chunked := lo.Chunk(item, 500)
+		query.WriteString("INSERT INTO ")
+		query.WriteString(target)
+		query.WriteString(" VALUES ")
+		// Query loop
+		for idx, chunk := range chunked {
+			query.WriteRune('(')
+			query.WriteString(strings.Join(chunk, ", "))
+			if idx == len(chunked)-1 {
+				query.WriteString(")")
+			} else {
+				query.WriteString("), ")
+			}
+		}
+
+		if !errorOnConflict {
+			query.WriteString(" ON CONFLICT DO NOTHING")
+		}
+		query.WriteRune(';')
+
+		batch.Queue(query.String())
+		query.Reset()
+
+		if queryCount%9 == 0 {
+			batchSize := batch.Len()
+			results := db.conn.SendBatch(ctx, batch)
+			defer results.Close()
+			for i := 0; i < batchSize; i++ {
+				_, err := results.Exec()
+				if err != nil {
+					errors = append(errors, err)
+				}
+			}
 		}
 	}
 
-	// query.
-	if !errorOnConflict {
-		query.WriteString(" ON CONFLICT DO NOTHING")
-	}
-	query.WriteRune(';')
-
-	// s.
-	// query := fmt.Sprintf("INSERT INTO %s VALUES ")
 }

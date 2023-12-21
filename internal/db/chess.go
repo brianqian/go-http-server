@@ -5,9 +5,21 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var useFast = true
+
+type FenEvaluation struct {
+	Id        pgtype.UUID        `json:"id" db:"id"`
+	Fen       string             `json:"fen" db:"fen"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt" db:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updatedAt" db:"updated_at"`
+	Line      string             `json:"line" db:"line"`
+	Eval      int                `json:"eval" db:"eval"`
+	Knodes    int                `json:"knodes" db:"knodes"`
+	Depth     int                `json:"depth" db:"depth"`
+}
 
 func (db *Database) InsertEvalLines(ctx context.Context, data *types.ImportedFenParent) {
 	if useFast {
@@ -47,12 +59,11 @@ func (db *Database) InsertFenPosition(ctx context.Context, data *types.ImportedF
 		"depth":        nil,
 	}}
 
-	db.BatchRequests(ctx, query, args)
+	db.batchRequests(ctx, query, args)
 
 }
 
 func (db *Database) Tester(ctx context.Context) {
-	// query := `SELECT * FROM fen_pv`
 
 	query := `INSERT INTO fen_pv (id, fen, created_at, updated_at, line, eval, knodes, depth) VALUES (default, @fen, default, default, @line, @eval, @knodes, @depth);`
 
