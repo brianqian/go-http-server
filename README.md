@@ -27,6 +27,28 @@ Using this project to learn Golang. Until now I have only really known Javascrip
 - For a struct to be serialized into json its fields need to tagged `json:field_name` and Marshaled
 - The `db:"field"` tag is used to reference table names
 
+## Importing large files
+
+Lichess provides a 4.5 gb json file of pre-calculated chess positions. The process of doing this requires reading the file, unmarshalling each line into a struct, and then ingesting it into the database. This seemed like a good opportunity to use some goroutines and look at memory management
+
+### Unmarshalling
+
+- The first attempt was just to read the file one line at a time and store it in a struct. This took around 45 seconds
+- The next idea was to use some goroutines to break this work up across multiple threads but learned that
+  - Work like this is much more i/o intensive than CPU bound (all though it seems like single cores are maxed?)
+  - Goroutines make the import slower. Because they operate on different threads, the CPU has different caches that need to be updated by each thread, slowing down the whole operation.
+- `bufio` has a default buffer of around 4kb per token so memory isn't an issue
+- A next optimization could be using `sync.Pool` to recycle data structures
+
+### DB ingestion
+
+- There was a clear difference here using goroutines instead of a sync upload since we could use multiple connections to start importing the data. However halfway through the process RAM gets maxed out, cpu quickly follows and the import slows to a crawl.
+- I refactored the database insert to take in multiple values per query and used pgx's batch feature to make each transaction more efficient.
+- Since bufio scans files one line at a time, I used `chanx` to batch together each line to feed the bulk insert function
+- Once batches exceeded the number of db connections there seems to be a big slowdown. The last steps are to
+  - See if the code can be modified to at least wait for the context timeout before ending
+  - Use the CopyWith method to use postgres copy to ingest a large file
+
 ## Context
 
 - Context is useful as a per-request place to store information

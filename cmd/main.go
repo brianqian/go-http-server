@@ -26,7 +26,7 @@ func main() {
 
 	switch args := os.Args[1]; args {
 	case "seed":
-		dbInstance = db.New(db.DbConfig{MinConnections: "3", MaxConnections: "8"})
+		dbInstance = db.New(db.DbConfig{MinConnections: "3", MaxConnections: "20"})
 		data.SeedImportedFens(dbInstance)
 	default:
 	}

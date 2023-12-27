@@ -36,3 +36,7 @@ func (cc *ChessClient) GetProfileByUsername(username string) *types.ChessComProf
 	cc.profile = profile
 	return profile
 }
+
+func (cc *ChessClient) GetPgnFromChessCom(username string, source string, month string) {
+
+}
