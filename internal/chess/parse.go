@@ -18,9 +18,9 @@ import (
 
 const (
 	LOG_RATE     = 500_000
-	IMPORT_LIMIT = 1_000_000
-	CHUNK_SIZE   = 10_000
-	SCAN_TYPE    = "batch" // "sync" "go", "go_local" "batch" "copy"
+	IMPORT_LIMIT = 100_000
+	CHUNK_SIZE   = 50_000
+	SCAN_TYPE    = "batch" // "sync" "go", "go_local"
 )
 
 // The base file that this is ingesting is ~5GB
@@ -37,7 +37,8 @@ func ProcessFenPositions(ctx context.Context, db *db.Database, filepath string) 
 		scanner   = bufio.NewScanner(f)
 		q         = []*types.ImportedFenParent{}
 		dataStore = make(chan *types.ImportedFenParent, CHUNK_SIZE)
-		wg        = &sync.WaitGroup{}
+
+		wg = &sync.WaitGroup{}
 	)
 
 	for scanner.Scan() {
@@ -51,7 +52,7 @@ func ProcessFenPositions(ctx context.Context, db *db.Database, filepath string) 
 		if err := json.Unmarshal(scanner.Bytes(), imported); err != nil {
 			slog.Warn("Error unmarshalling")
 		}
-		wg.Add(1)
+		// wg.Add(1)
 		switch SCAN_TYPE {
 		case "sync":
 			q = append(q, imported)
@@ -60,41 +61,38 @@ func ProcessFenPositions(ctx context.Context, db *db.Database, filepath string) 
 			go func() {
 				dataStore <- imported
 			}()
-		case "go_local":
-			// No difference, causes an error on writing to a closed channel?
-			go func(imp *types.ImportedFenParent, store chan *types.ImportedFenParent) {
-				store <- imp
-			}(imported, dataStore)
 		case "batch":
 			// https://medium.com/@smallnest/how-to-efficiently-batch-read-data-from-go-channels-7fe70774a8a5
+			go chanx.Batch[*types.ImportedFenParent](ctx, dataStore, CHUNK_SIZE, func(ifp []*types.ImportedFenParent) {
+				fmt.Println("original batch size per fen:", len(ifp))
+				db.InsertEvalLines(ctx, ifp)
+			})
 			go func() {
 				dataStore <- imported
 			}()
-
 		}
-
 	}
+
 	elapsed := time.Since(start)
 	fmt.Println(count, "fens processed.")
 	fmt.Printf("Parsing the file took [%v]\n", elapsed)
 	fmt.Println(runtime.NumGoroutine(), "goroutines")
-	for range dataStore {
-		go chanx.Batch[*types.ImportedFenParent](ctx, dataStore, CHUNK_SIZE, func(ifp []*types.ImportedFenParent) {
-			fmt.Println("original batch size per fen:", len(ifp))
-			errors := db.InsertEvalLines(ctx, ifp)
-			if len(errors) == 0 {
-				fmt.Println("finishing...", len(ifp))
-				wg.Done()
-			} else {
-				fmt.Println("rturned erros", errors)
-			}
-		})
+
+	switch SCAN_TYPE {
+	case "sync":
+		db.InsertEvalLines(ctx, q)
+	case "go":
+		for d := range dataStore {
+			db.InsertEvalLines(ctx, []*types.ImportedFenParent{d})
+		}
+	case "batch":
+
 	}
-	fmt.Println("************************")
-	// close(dataStore)
-	// wg.Wait()
+
+	wg.Wait()
+	_, ok := <-dataStore
 	fmt.Printf("Whole import took [%v]\n", time.Since(start))
-	fmt.Println("Finished importing")
+	fmt.Println("Finished importing", ok)
 }
 
 func memoryLogger(count int, logRate int) {

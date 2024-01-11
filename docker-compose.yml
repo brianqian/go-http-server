@@ -15,6 +15,11 @@ services:
       - pgdata:/var/lib/postgresql/data/pgdata
     command: >
       -c work_mem=128MB
+      -c logging_collector=on
+      -c log_statement=all
+      -c log_duration=1
+      -c log_connections=1
+      -c log_filename=%Y-%b-%d_%H:%M:%S.log
 
 volumes:
   pgdata:

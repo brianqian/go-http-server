@@ -1,12 +1,12 @@
 package db
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"math"
 	"os"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,14 +20,6 @@ type DbConfig struct {
 
 type Database struct {
 	conn *pgxpool.Pool
-}
-
-type DbHelper[T any] interface {
-	FindById(id string) (T, error)
-	DeleteById(id string) (bool, error)
-	UpdateById(id string)
-	Insert(entity T) (int, error)
-	InsertMany(entity []T) (int, error)
 }
 
 func New(config DbConfig) *Database {
@@ -47,16 +39,19 @@ func New(config DbConfig) *Database {
 		os.Exit(1)
 	}
 
-	pgInstance := &Database{conn: dbPool}
+	return &Database{conn: dbPool}
 
-	return pgInstance
 }
 
 func (db *Database) Close() {
 	db.conn.Close()
-
 }
 
+func (db *Database) Conn(ctx context.Context) (*pgxpool.Conn, error) {
+	return db.conn.Acquire(ctx)
+}
+
+/* DEPRECATED */
 func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.NamedArgs) {
 	batch := &pgx.Batch{}
 	for _, arg := range args {
@@ -74,28 +69,30 @@ func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.
 	}
 }
 
+type NullValue *string
+
 // Can adjust later but for now, we'll default to 500 items per query and 10 queries per batch
 // As values this takes a slice of strings
-func (db *Database) insertMany(ctx context.Context, target string, values [][]string, errorOnConflict bool) []error {
+func (db *Database) insertMany(ctx context.Context, table pgx.Identifier, target string, values [][]string, errorOnConflict bool) []error {
 	const (
 		ITEMS_PER_QUERY   = 1000
 		QUERIES_PER_BATCH = 50
 	)
 	var (
 		valLen       = len(values)
-		errors       []error
-		numBatches   = int(math.Ceil(float64(valLen) / float64((ITEMS_PER_QUERY * QUERIES_PER_BATCH))))
 		currentBatch = 0
+		numBatches   = int(math.Ceil(float64(valLen) / float64((ITEMS_PER_QUERY * QUERIES_PER_BATCH))))
 		queryBatch   = lo.Chunk(values, ITEMS_PER_QUERY)
+		batches      = make([]*pgx.Batch, numBatches)
+		errors       []error
 	)
 
-	batches := []*pgx.Batch{}
-
-	for i := 0; i < numBatches; i++ {
-		batches = append(batches, &pgx.Batch{})
+	for i := range batches {
+		batches[i] = &pgx.Batch{}
 	}
 
 	conn, err := db.conn.Acquire(ctx)
+
 	// defer db.conn.Close()
 	// defer conn.Conn().Close(ctx)
 	defer conn.Release()
@@ -105,67 +102,72 @@ func (db *Database) insertMany(ctx context.Context, target string, values [][]st
 
 	for idx, batchItem := range queryBatch {
 		batch := batches[currentBatch]
-		query := createBatchedQueryString(target, batchItem, errorOnConflict)
+		query := createBatchedQueryString(table, target, batchItem, errorOnConflict)
 		batch.Queue(query)
 		batchSize := batch.Len()
 		if batchSize > QUERIES_PER_BATCH {
-			fmt.Println(batchSize, valLen)
+			fmt.Println("Error -- batch overflow: ", batchSize, valLen)
 		}
 
-		if idx == len(queryBatch)-1 || batchSize%QUERIES_PER_BATCH == 0 {
-			// Batch limit hit, sending batch
-			results := conn.SendBatch(ctx, batch)
-			fmt.Println("Sending Batch", batchSize, valLen)
-			for i := 0; i < batchSize; i++ {
-				_, err := results.Exec()
-				if err != nil {
-					fmt.Println(err)
-					errors = append(errors, err)
-				}
+		if len(queryBatch) == 1 {
+			if _, err := conn.Exec(ctx, query); err != nil {
+				errors = append(errors, err)
 			}
-			closeErr := results.Close()
-			if closeErr != nil {
-				fmt.Println("CLOSE ERROR", closeErr)
-			} else {
-				fmt.Println(idx+1, "chunks of ", len(queryBatch), " sent. ID: ", valLen)
-				fmt.Println(currentBatch, "/", numBatches)
-				currentBatch++
+		} else {
+			// When batch hits its max or is the last batch, send the batch
+			if idx == len(queryBatch)-1 || batchSize%QUERIES_PER_BATCH == 0 {
+				results := conn.SendBatch(ctx, batch)
+				defer func() {
+					if closeErr := results.Close(); closeErr != nil {
+						fmt.Println("CLOSE ERROR", closeErr, "ID", valLen)
+					} else {
+						// fmt.Println(idx+1, "chunks of ", len(queryBatch), " sent. ID: ", valLen)
+						// fmt.Println(currentBatch, "/", numBatches)
+					}
+					currentBatch++
+				}()
+				// fmt.Println("Sending Batch", batchSize, valLen)
+				// Check for errors within batch
+				for i := 0; i < batchSize; i++ {
+					_, err := results.Exec()
+					if err != nil {
+						fmt.Println("Error in batch", err)
+						errors = append(errors, err)
+					}
+				}
 			}
 		}
 	}
 	return errors
 }
 
-func (db *Database) copyInto(ctx context.Context, table string, rows [][]any, columns []string) (int, error) {
-	copyCount, err := db.conn.CopyFrom(
-		ctx,
-		pgx.Identifier{table},
-		columns,
-		pgx.CopyFromRows(rows),
-	)
-	return int(copyCount), err
+type copyFromFileArgs struct {
+	ctx       context.Context
+	table     string
+	columns   []string
+	parsingFn parsingFn
+	filePath  string
 }
 
-func createBatchedQueryString(target string, items [][]string, errorOnConflict bool) string {
-	var query = &strings.Builder{}
-	query.WriteString("INSERT INTO ")
-	query.WriteString(target)
-	query.WriteString(" VALUES ")
-	for idx, item := range items {
-		query.WriteRune('(')
-		query.WriteString(strings.Join(item, ", "))
-		if idx == len(items)-1 {
-			query.WriteString(")")
-		} else {
-			query.WriteString("), ")
+// Doesn't work because each scanned line results in multiple chess lines and evaulations
+func (db *Database) copyFromFile(c copyFromFileArgs) (int, error) {
+	f, err := os.Open(c.filePath)
+	if err != nil {
+		log.Fatal("Could not open file", err)
+	}
+	defer func() {
+		if err = f.Close(); err != nil {
+			log.Fatal(err)
 		}
+	}()
 
-	}
-	if !errorOnConflict {
-		query.WriteString(" ON CONFLICT DO NOTHING")
-	}
-	query.WriteRune(';')
+	sc := bufio.NewScanner(f)
 
-	// fmt.Println(query.String())
-	return query.String()
+	copyCount, err := db.conn.CopyFrom(
+		c.ctx,
+		pgx.Identifier{c.table},
+		c.columns,
+		copyFromFileSource(sc, c.parsingFn),
+	)
+	return int(copyCount), err
 }

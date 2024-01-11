@@ -45,9 +45,8 @@ Lichess provides a 4.5 gb json file of pre-calculated chess positions. The proce
 - There was a clear difference here using goroutines instead of a sync upload since we could use multiple connections to start importing the data. However halfway through the process RAM gets maxed out, cpu quickly follows and the import slows to a crawl.
 - I refactored the database insert to take in multiple values per query and used pgx's batch feature to make each transaction more efficient.
 - Since bufio scans files one line at a time, I used `chanx` to batch together each line to feed the bulk insert function
-- Once batches exceeded the number of db connections there seems to be a big slowdown. The last steps are to
-  - See if the code can be modified to at least wait for the context timeout before ending
-  - Use the CopyWith method to use postgres copy to ingest a large file
+- Once batches exceeded the number of db connections there seems to be a big slowdown.
+- Adding `CopyFrom` which uses postgres `COPY` speeds up the import dramatically. Next step is to concurrently parse and ingest the json file.
 
 ## Context
 
