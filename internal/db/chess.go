@@ -33,8 +33,6 @@ type InsertFenEvaluation struct {
 	Mate   int    `json:"mate" db:"mate"`
 }
 
-var runningTotal = 0
-
 func (db *Database) InsertEvalLines(ctx context.Context, data []*types.ImportedFenParent) (errors []error) {
 
 	table := pgx.Identifier{"fen_pv"}
@@ -67,9 +65,6 @@ func (db *Database) InsertEvalLines(ctx context.Context, data []*types.ImportedF
 		errors = db.insertMany(ctx, table, cols, asStringArr, false)
 	}
 	fmt.Println(len(data), "items converted into lines: ", len(fenEvals))
-
-	runningTotal += len(fenEvals)
-	fmt.Println(runningTotal)
 
 	return errors
 }

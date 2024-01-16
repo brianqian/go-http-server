@@ -18,9 +18,9 @@ import (
 
 const (
 	LOG_RATE     = 500_000
-	IMPORT_LIMIT = 100_000
+	IMPORT_LIMIT = 1000000_000
 	CHUNK_SIZE   = 50_000
-	SCAN_TYPE    = "batch" // "sync" "go", "go_local"
+	SCAN_TYPE    = "batch" // "sync" "go", "batch"
 )
 
 // The base file that this is ingesting is ~5GB
@@ -37,9 +37,21 @@ func ProcessFenPositions(ctx context.Context, db *db.Database, filepath string) 
 		scanner   = bufio.NewScanner(f)
 		q         = []*types.ImportedFenParent{}
 		dataStore = make(chan *types.ImportedFenParent, CHUNK_SIZE)
+		pool      = createSyncPool()
 
 		wg = &sync.WaitGroup{}
 	)
+
+	if SCAN_TYPE == "batch" {
+		go chanx.Batch[*types.ImportedFenParent](ctx, dataStore, CHUNK_SIZE, func(ifp []*types.ImportedFenParent) {
+			db.InsertEvalLines(ctx, ifp)
+			defer wg.Add(-len(ifp))
+			for _, poolItem := range ifp {
+				pool.Put(poolItem)
+			}
+			fmt.Println("Batch processed...")
+		})
+	}
 
 	for scanner.Scan() {
 		count++
@@ -48,25 +60,17 @@ func ProcessFenPositions(ctx context.Context, db *db.Database, filepath string) 
 			break
 		}
 
-		imported := &types.ImportedFenParent{}
+		imported := pool.Get().(*types.ImportedFenParent)
 		if err := json.Unmarshal(scanner.Bytes(), imported); err != nil {
 			slog.Warn("Error unmarshalling")
 		}
-		// wg.Add(1)
+		wg.Add(1)
 		switch SCAN_TYPE {
 		case "sync":
 			q = append(q, imported)
-		case "go":
+		case "batch", "go":
 			// This is slower than sync. See https://appliedgo.net/concurrencyslower/
-			go func() {
-				dataStore <- imported
-			}()
-		case "batch":
 			// https://medium.com/@smallnest/how-to-efficiently-batch-read-data-from-go-channels-7fe70774a8a5
-			go chanx.Batch[*types.ImportedFenParent](ctx, dataStore, CHUNK_SIZE, func(ifp []*types.ImportedFenParent) {
-				fmt.Println("original batch size per fen:", len(ifp))
-				db.InsertEvalLines(ctx, ifp)
-			})
 			go func() {
 				dataStore <- imported
 			}()
@@ -85,14 +89,12 @@ func ProcessFenPositions(ctx context.Context, db *db.Database, filepath string) 
 		for d := range dataStore {
 			db.InsertEvalLines(ctx, []*types.ImportedFenParent{d})
 		}
-	case "batch":
 
 	}
 
 	wg.Wait()
-	_, ok := <-dataStore
 	fmt.Printf("Whole import took [%v]\n", time.Since(start))
-	fmt.Println("Finished importing", ok)
+	// done <- struct{}{}
 }
 
 func memoryLogger(count int, logRate int) {
@@ -114,4 +116,14 @@ func memoryLogger(count int, logRate int) {
 		fmt.Printf("memstat.NextGC: %+v\n", memstat.NextGC)
 		fmt.Printf("memstat.NumGC: %+v\n", memstat.NumGC)
 	}
+}
+
+func createSyncPool() *sync.Pool {
+	pool := &sync.Pool{New: func() any {
+		return &types.ImportedFenParent{}
+	}}
+	for i := 0; i < CHUNK_SIZE; i++ {
+		pool.Put(pool.New())
+	}
+	return pool
 }
