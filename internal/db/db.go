@@ -52,24 +52,22 @@ func (db *Database) Conn(ctx context.Context) (*pgxpool.Conn, error) {
 }
 
 /* DEPRECATED */
-func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.NamedArgs) {
-	batch := &pgx.Batch{}
-	for _, arg := range args {
-		batch.Queue(query, arg)
-	}
+// func (db *Database) batchRequests(ctx context.Context, query string, args []pgx.NamedArgs) {
+// 	batch := &pgx.Batch{}
+// 	for _, arg := range args {
+// 		batch.Queue(query, arg)
+// 	}
 
-	results := db.conn.SendBatch(ctx, batch)
-	defer results.Close()
-	for range args {
-		_, err := results.Exec()
-		if err != nil {
-			fmt.Println("Error inserting eval", err)
-			log.Fatal("Error inserting eval", err)
-		}
-	}
-}
-
-type NullValue *string
+// 	results := db.conn.SendBatch(ctx, batch)
+// 	defer results.Close()
+// 	for range args {
+// 		_, err := results.Exec()
+// 		if err != nil {
+// 			fmt.Println("Error inserting eval", err)
+// 			log.Fatal("Error inserting eval", err)
+// 		}
+// 	}
+// }
 
 // Can adjust later but for now, we'll default to 500 items per query and 10 queries per batch
 // As values this takes a slice of strings
@@ -92,9 +90,6 @@ func (db *Database) insertMany(ctx context.Context, table pgx.Identifier, target
 	}
 
 	conn, err := db.conn.Acquire(ctx)
-
-	// defer db.conn.Close()
-	// defer conn.Conn().Close(ctx)
 	defer conn.Release()
 	if err != nil {
 		fmt.Println("error getting conn", err)
@@ -120,13 +115,9 @@ func (db *Database) insertMany(ctx context.Context, table pgx.Identifier, target
 				defer func() {
 					if closeErr := results.Close(); closeErr != nil {
 						fmt.Println("CLOSE ERROR", closeErr, "ID", valLen)
-					} else {
-						// fmt.Println(idx+1, "chunks of ", len(queryBatch), " sent. ID: ", valLen)
-						// fmt.Println(currentBatch, "/", numBatches)
 					}
 					currentBatch++
 				}()
-				// fmt.Println("Sending Batch", batchSize, valLen)
 				// Check for errors within batch
 				for i := 0; i < batchSize; i++ {
 					_, err := results.Exec()

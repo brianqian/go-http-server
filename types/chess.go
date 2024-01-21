@@ -33,6 +33,29 @@ type ChessComProfile struct {
 	League      string `json:"league"`
 }
 
+type pgnPlayerData struct {
+	Rating   int    `json:"rating"`
+	Result   string `json:"result"`
+	Id       string `json:"@id"`
+	Username string `json:"username"`
+	Uuid     string `json:"uuid"`
+}
+type RawChessComPgn struct {
+	Url          string        `json:"url"`
+	Pgn          string        `json:"pgn"`
+	TimeControl  string        `json:"time_control"`
+	EndTime      int           `json:"end_time"`
+	Rated        bool          `json:"rated"`
+	Tcn          string        `json:"tcn"`
+	Uuid         string        `json:"uuid"`
+	InitialSetup string        `json:"initial_setup"`
+	Fen          string        `json:"fen"`
+	TimeClass    string        `json:"time_class"`
+	Rules        string        `json:"rules"`
+	White        pgnPlayerData `json:"white"`
+	Black        pgnPlayerData `json:"black"`
+}
+
 type PrincipleVariation struct {
 	Eval int    `json:"cp"`
 	Line string `json:"line"`
@@ -48,4 +71,29 @@ type ImportedEvaulation struct {
 	Pvs    []PrincipleVariation `json:"pvs"`
 	Knodes int                  `json:"knodes"`
 	Depth  int                  `json:"depth"`
+}
+
+type ChessComPgn struct {
+	Event           string
+	Site            string
+	Date            string
+	Round           string
+	White           string
+	Black           string
+	Result          string
+	CurrentPosition string
+	Timezone        string
+	ECO             string
+	ECOUrl          string
+	UTCDate         string
+	UTCTime         string
+	WhiteElo        string
+	BlackElo        string
+	TimeControl     string
+	Termination     string
+	StartTime       string
+	EndDate         string
+	EndTime         string
+	Link            string
+	Moves           string
 }

@@ -84,22 +84,22 @@ func (db *Database) ImportEvalFromFile(ctx context.Context, filepath string) {
 	})
 }
 
-func (db *Database) InsertFenPosition(ctx context.Context, data *types.ImportedFenParent) {
-	query := `INSERT INTO fen_positions(
-		fen, created_at, updated_at, classic_eval, nnue_eval, final_eval, depth) 
-	VALUES(@fen, default, default, @classic_eval, @nnue_eval, @final_eval, @depth);`
+// func (db *Database) InsertFenPosition(ctx context.Context, data *types.ImportedFenParent) {
+// 	query := `INSERT INTO fen_positions(
+// 		fen, created_at, updated_at, classic_eval, nnue_eval, final_eval, depth)
+// 	VALUES(@fen, default, default, @classic_eval, @nnue_eval, @final_eval, @depth);`
 
-	args := []pgx.NamedArgs{{
-		"fen":          data.Fen,
-		"classic_eval": nil,
-		"nnue_eval":    nil,
-		"final_eval":   nil,
-		"depth":        nil,
-	}}
+// 	args := []pgx.NamedArgs{{
+// 		"fen":          data.Fen,
+// 		"classic_eval": nil,
+// 		"nnue_eval":    nil,
+// 		"final_eval":   nil,
+// 		"depth":        nil,
+// 	}}
 
-	db.batchRequests(ctx, query, args)
+// 	db.batchRequests(ctx, query, args)
 
-}
+// }
 
 func convertImportLineToEvals(data []*types.ImportedFenParent) []InsertFenEvaluation {
 	var values []InsertFenEvaluation

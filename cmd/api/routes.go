@@ -22,5 +22,6 @@ func registerUserRoutes(r chi.Router) {
 func registerChessRoutes(r chi.Router) {
 	r.Route("/chess", func(r chi.Router) {
 		r.Get("/profile/{username}", GetChessProfile)
+		r.Get("/profile/{username}/pgn/{date}", GetChessComPgnByMonth)
 	})
 }

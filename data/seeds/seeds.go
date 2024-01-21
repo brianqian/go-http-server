@@ -16,7 +16,7 @@ func SeedImportedFens(db *db.Database) {
 
 	for i := 0; i < 15; i++ {
 		fmt.Println("Running ", i)
-		chess.ProcessFenPositions(ctx, db, "tmp/base-"+strconv.Itoa(count)+".json")
+		chess.ImportFenSeed(ctx, db, "tmp/base-"+strconv.Itoa(count)+".json")
 		count++
 		time.Sleep(time.Second * 5)
 	}
